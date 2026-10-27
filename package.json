@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.18.0" },
+  "engines": { "node": "22.x" },
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:client": "vite --host 127.0.0.1",
