@@ -28,7 +28,7 @@ Official form: https://forms.gle/sBy4sfqyiRG2Zpom9
 
 ## Delivery gates — do not mark complete without verification
 
-- [ ] Final GitHub repository URL verified without additional permissions.
+- [x] Final GitHub repository URL verified without additional permissions (HTTP 200).
 - [ ] Final deployment/build URL verified without additional permissions.
 - [ ] A 3–5 minute demo shows the problem, users, major workflows, interesting logic, and working product.
 - [ ] Demo video URL verified without additional permissions.
@@ -57,3 +57,4 @@ Official form: https://forms.gle/sBy4sfqyiRG2Zpom9
 6. Complete deployment, evaluator documentation, demo, and submission evidence.
 
 Each milestone should produce its own honest commit; never fabricate dates or backfill a misleading history.
+
