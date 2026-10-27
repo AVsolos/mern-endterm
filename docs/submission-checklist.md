@@ -6,24 +6,24 @@ Official form: https://forms.gle/sBy4sfqyiRG2Zpom9
 
 ## Product and engineering acceptance
 
-- [ ] Define the problem, target users, and why software is useful.
-- [ ] Implement approximately 3–5 complete, meaningful workflows.
-- [ ] Include application logic beyond basic CRUD, static pages, or an API wrapper.
-- [ ] Persist information that must survive sessions.
-- [ ] Document architecture and justify the chosen technology.
-- [ ] Apply authentication and authorization if the product uses accounts or shared private resources.
-- [ ] Handle invalid input, unavailable storage/network, missing resources, duplicates, and invalid states where applicable.
-- [ ] Provide clear navigation, empty, success, loading, and error states as applicable.
-- [ ] Validate input, protect private data, and commit no credentials.
-- [ ] Verify major workflows and relevant failure cases.
-- [ ] Document original work, dependencies, and material reused sources.
+- [x] Define the problem, target users, and why software is useful.
+- [x] Implement approximately 3–5 complete, meaningful workflows.
+- [x] Include application logic beyond basic CRUD, static pages, or an API wrapper.
+- [x] Persist information that must survive sessions.
+- [x] Document architecture and justify the chosen technology.
+- [x] Apply authentication and authorization if the product uses accounts or shared private resources.
+- [x] Handle invalid input, unavailable storage/network, missing resources, duplicates, and invalid states where applicable.
+- [x] Provide clear navigation, empty, success, loading, and error states as applicable.
+- [x] Validate input, protect private data, and commit no credentials.
+- [x] Verify major workflows and relevant failure cases.
+- [x] Document original work, dependencies, and material reused sources.
 
 ## Source and documentation
 
-- [ ] Keep complete source, configuration, and documentation in Git.
-- [ ] Create meaningful commits as actual development milestones are completed.
-- [ ] README includes name, problem, users, solution, features, stack, architecture, setup, configuration, and deployment.
-- [ ] Source is available to evaluators through GitHub.
+- [x] Keep complete source, configuration, and documentation in Git.
+- [x] Create meaningful commits as actual development milestones are completed.
+- [x] README includes name, problem, users, solution, features, stack, architecture, setup, configuration, and deployment.
+- [x] Source is available to evaluators through GitHub.
 - [ ] Deployment/build is accessible with clear run instructions.
 
 ## Delivery gates — do not mark complete without verification
@@ -37,15 +37,15 @@ Official form: https://forms.gle/sBy4sfqyiRG2Zpom9
 
 ## Evaluation weights
 
-| Area | Weight |
-| --- | ---: |
-| Problem and product understanding | 10% |
-| Core product implementation | 25% |
-| Engineering and application logic | 20% |
-| Architecture and technical decisions | 15% |
-| User experience and reliability | 10% |
-| Code quality and project structure | 10% |
-| Deployment and documentation | 10% |
+| Area                                 | Weight |
+| ------------------------------------ | -----: |
+| Problem and product understanding    |    10% |
+| Core product implementation          |    25% |
+| Engineering and application logic    |    20% |
+| Architecture and technical decisions |    15% |
+| User experience and reliability      |    10% |
+| Code quality and project structure   |    10% |
+| Deployment and documentation         |    10% |
 
 ## Development sequence
 
@@ -57,3 +57,4 @@ Official form: https://forms.gle/sBy4sfqyiRG2Zpom9
 6. Complete deployment, evaluator documentation, demo, and submission evidence.
 
 Each milestone should produce its own honest commit; never fabricate dates or backfill a misleading history.
+

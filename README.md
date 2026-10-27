@@ -1,133 +1,145 @@
-# vinext-starter
+# BorrowLab
 
-A clean full-stack starter running on [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and Drizzle support.
+**Good things are better shared.** Equipment booking and handover management for campus labs, clubs, and creative teams.
 
-## Prerequisites
+Built by **Atharva Singh** for the End-Term Software Project.
 
-- Node.js `>=22.13.0`
-- Portable: Windows, macOS, or Linux; no Bash required
-- Managed Linux: managed Linux runtime with Bash, `flock`, `curl`, `sha256sum`, and GNU `timeout`
-- Git and `tar` (including Windows `tar.exe`) are required for publishing; portable publication does not require Bash
+- [Application](https://borrowlab-avsolos.nimblespoon35.chatgpt.site)
+- [Source and commit history](https://github.com/AVsolos/mern-endterm)
+- [Architecture and product decisions](docs/product-and-architecture.md)
+- [Verification and limitations](docs/verification.md)
+- [Demo script](docs/demo-script.md) · [Submission details](docs/submission-details.md)
 
-## Sites Lifecycle
+## Problem statement and target users
 
-The Sites initializer copies the shared starter and selects managed-linux only when `SITES_MANAGED_LINUX_CONTAINER=1`; otherwise it selects portable. It saves the selection only in ignored `.sites-runtime/execution-profile.json`. Both profiles copy/configure first, then use the plugin's separate `install-dependencies.mjs` step to measure installation independently. Edit source under `app/` and follow the Sites skill for installation, preview, builds, and publishing.
+A camera shared through a group chat has no reliable availability calendar, handover record, or clear return responsibility. Campus lab managers and student club members need a lightweight shared system that prevents conflicting bookings and tracks physical equipment from reservation to return.
 
-Run `node <plugin-root>/scripts/configure-execution-profile.mjs` only when the profile is unknown for the current checkout and environment. Profile changes do not alter tracked source or require reinstalling otherwise-valid dependencies; restart an existing preview to use the new selection. Do not commit or upload `.sites-runtime/`.
+## Solution and key features
 
-This starter does not use `wrangler.jsonc`.
+BorrowLab organizes equipment into private team workspaces. The creator manages inventory and handovers; invited borrowers reserve equipment and manage their own bookings.
 
-Publish archives outside the source checkout or under its ignored `outputs/` directory. Local `.env*`, `.dev.vars*`, TypeScript build state, and tool runtime directories are ignored; keep the hosting manifest, migrations, and authored scripts in source control.
+1. **Create or join a workspace.** Use ChatGPT sign-in, create a workspace, optionally load six sample assets, or join using a manager's invitation. Rotate invitations when necessary.
+2. **Find and reserve equipment.** Search by name, tag, or location; filter categories and availability; choose a future time slot and explain the purpose. The database checks conflicts atomically before saving.
+3. **Complete the loan.** Managers check equipment out and record returns with condition notes. Borrowers can cancel uncollected reservations. Overdue loans remain blocked until returned.
+4. **Keep inventory trustworthy.** Add uniquely tagged assets, place equipment in maintenance only when commitments are resolved, and review a persistent activity trail.
 
-`install:ci` runs `npm ci` once against the shared lockfile, disables parent-workspace discovery, and includes required dev/optional dependencies despite production/omit settings. Sharp defaults to prebuilt binaries unless explicitly configured otherwise. Do not overlap installers.
+This is a working database-backed application. Sample assets are created only on request in a new workspace and then behave as ordinary inventory. The interface does not hardcode bookings or success states.
 
-- **Portable:** Preserve host HOME, npm cache, registry, proxy, temporary paths, retry/concurrency settings, and lifecycle-script policy. Use `--prefer-offline --no-audit --no-fund`.
-- **Managed Linux:** Use the existing project-local HOME/cache/tmp setup and Linux install lock, tarball preflight, and timeout. Restore the image-seeded npm cache only when its lockfile hash matches; retain network fallback. Builds keep their existing timeout. These helpers are not invoked by the portable profile.
+## Try it as an evaluator
 
-`scripts/sites-env.mjs` preserves the caller's HOME, npm cache, proxy, XDG, and temporary-directory configuration while defaulting Wrangler and Miniflare state to the checkout. If npm reports an unwritable cache, select a writable path with `npm_config_cache` for that install. The `dev` and `start` scripts also keep Wrangler logs inside the checkout. Generated `.sites-runtime/` and `.wrangler/` directories are disposable and ignored by Git.
+Open the application and sign in with ChatGPT. Create a workspace with sample equipment. Set pickup about five minutes ahead and return two hours later, then reserve a camera. Open **Reservations**, check out the camera, and record its return. Open **History** and **Activity**, then reload to verify persistence.
 
-On portable, `npm run dev` uses `vinext dev` with HMR, starting at port 5173. Vinext records the running server in ignored `.vinext/` state, rejects an ordinary duplicate launch, and recovers stale state after a stopped process; exactly simultaneous starts can race. Pass `--port <port>` or `--hostname <host>` after `npm run dev --` when needed; keep portable previews on loopback.
+To test borrower permissions, copy the workspace invitation under **Workspace** and join from a second ChatGPT account. Borrowers see availability and their own reservations, cannot view the invitation/audit trail, and cannot manage inventory or handovers.
 
-For managed Linux browser QA, follow the Sites skill's managed preview reference. The daemon runs the project's Vite dev script with `--host 0.0.0.0 --port 4173 --strictPort`; use the CLI's returned URL. The ignored local profile survives the daemon's cleared environment.
+No author approval or shared administrator password is needed to create your own evaluator workspace. Hosted sign-in requires a ChatGPT account. Local testing uses the starter's development identity instead.
 
-The portable profile simulates ChatGPT sign-in only for loopback development requests. Visit `/signin-with-chatgpt?return_to=/` to sign in as `local_seedy` (`seedy@sites.test`, display name `Seedy`) and `/signout-with-chatgpt?return_to=/` to sign out. The development cookie preserves that identity across server restarts. Mock auth is disabled in the managed-linux profile and is not included in production builds; hosted authentication remains dispatch-owned.
+## Tech stack
 
-The Worker uses `vinext/server/fetch-handler`, including Vinext's config-aware image handling. After building, `npm start` runs that Worker locally through Wrangler on `127.0.0.1`, sharing `.wrangler/state` with dev preview and local D1 migrations; it does not deploy the site or simulate sign-in. Use the URL printed by the server. Pass `npm start -- --port <port>` to select a different built-preview port.
+| Component    | Choice                                                    | Why                                                                    |
+| ------------ | --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Interface    | React 19, TypeScript, CSS, Lucide icons                   | Typed interaction state and an accessible responsive interface         |
+| Server       | Vinext/Vite on Cloudflare Workers                         | Route handlers and React rendering in one deployable app               |
+| Persistence  | Cloudflare D1 / SQLite                                    | Relational constraints and atomic statements for resource reservations |
+| Schema       | Drizzle and checked-in SQL migrations                     | Versioned and reproducible schema changes                              |
+| Identity     | Sites / ChatGPT sign-in                                   | Verified identity at the hosting gateway without storing passwords     |
+| Verification | Node test runner, real SQLite, TypeScript, GitHub Actions | Reproducible domain, authorization, transaction, and build checks      |
 
-Local previews use Miniflare's placeholder `Request.cf` metadata without a network lookup. Set `CLOUDFLARE_CF_FETCH_ENABLED=true` to opt into fetching preview metadata; this setting does not change hosted request metadata.
+The repository name is `mern-endterm`, but this project does **not** claim to use MongoDB or Express. The supplied guidelines permit any appropriate stack.
 
-Local tool usage metrics are disabled by default. Set `WRANGLER_SEND_METRICS=true` to opt in.
+## Architecture
 
-## Included Shape
-
-- edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `worker/index.ts` is the production Worker entrypoint and preserves request-scoped connector bindings
-- `scripts/vite/` contains the maintained Vite integrations and the vendored Sites plugin license
-- `scripts/connector-preview/` contains the local connector preview Worker and session helpers
-- the remaining `scripts/` files select execution profiles and run installation, development, and builds; the plugin's helpers orchestrate the Sites lifecycle
-- `dist/` contains generated deployment output; `.vinext/`, `.wrangler/`, and `.sites-runtime/` contain ignored local tool state
-- `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
-- `db/schema.ts` starts intentionally empty
-- `@cloudflare/workers-types` provides Worker types; `cloudflare-env.d.ts` declares optional `DB`/`BUCKET` bindings—update these declarations if binding names change
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Use it as the durable user key; use email and name for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive `oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty `name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by `oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```mermaid
+flowchart LR
+  Browser[React interface] --> Gateway[Sites identity gateway]
+  Gateway --> API[Vinext route handlers]
+  API --> Service[Authorized workflow service]
+  Service --> D1[(D1 / SQLite)]
+  D1 --> Records[Workspaces / members / equipment / bookings / audit]
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+- `app/borrowlab.tsx`: catalog, reservations, handover dialogs, activity, and workspace controls.
+- `app/api/workspace/route.ts`: authentication, request validation, origin checks, error mapping, and service dispatch.
+- `lib/domain.ts`: types, input/time validation, and availability rules shared where appropriate.
+- `lib/service.ts`: membership checks, parameterized database queries, atomic booking operations, and transactional audit writes.
+- `db/schema.ts` and `drizzle/`: relational model and schema migrations.
+- `tests/workflows.test.ts`: service tests against real SQLite with migrations applied.
+- `worker/`, `scripts/`, and `.openai/hosting.json`: runtime, build, local development, and Sites deployment configuration.
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs optional or required ChatGPT sign-in:
+### Data and consistency
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use the returned `userId` as the stable user key for user-owned records; do not use email as a durable identifier.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send anonymous visitors through Sign in with ChatGPT.
-- In a Server Component, start sign-in with `<a href={chatGPTSignInPath(returnTo)} target="_top">`. The auth helper module is server-only; do not import it into a Client Component.
-- Do not use `fetch`, XHR, a client-side router, or a framework link that can prefetch the sign-in route. SIWC must start as a top-level navigation.
-- Never request the AuthAPI authorization endpoint directly. The dispatch-owned `/signin-with-chatgpt` route must start the SIWC flow.
-- Use `chatGPTSignOutPath(returnTo)` for browser sign-out links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because they depend on per-request identity headers.
+Each equipment record is one physical asset. Asset tags are unique within a workspace. Reservations use half-open time intervals `[start, end)`, so a reservation may start exactly when another ends. An atomic `INSERT ... SELECT ... WHERE NOT EXISTS` checks service status and all conflicting reservations before creating a booking. Reading availability in the UI alone never grants the reservation.
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the OAuth cookies, and identity header injection. Do not implement app routes for those reserved paths. Routes that do not import and call the helper remain anonymous-compatible.
+A loan follows `reserved → checked_out → returned`, or `reserved → cancelled`. Conditional updates enforce transitions. Checkout is manager-only, opens 15 minutes before pickup, and closes when the reservation ends. Checked-out equipment blocks new reservations until returned. Expired uncollected bookings stay in history and no longer block later slots.
 
-SIWC establishes identity only; it does not prove workspace membership. Use the Sites hosting platform's access policy controls for workspace-wide restrictions, or enforce explicit server-side membership or allowlist checks.
+Each mutation and its audit insertion share a D1 batch transaction. Booking UUIDs support safe repeated submission. Times are stored as Unix milliseconds and displayed in the user's browser timezone. See the [architecture document](docs/product-and-architecture.md) for details and tradeoffs.
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write actions tied to the current ChatGPT user. Leave public content anonymous.
+## Local setup
 
-## Local D1 migrations
-
-For a D1-backed local preview, generate SQL with `npm run db:generate`. Build once through the Sites skill's build entrypoint (or `npm run build` for standalone use) to generate `dist/server/wrangler.json`, rebuilding if bindings change. From the project root, apply each pending migration in order:
+Requires **Node.js 22.18+**, npm, and Git. Windows, macOS, and Linux are supported. Use a current Node 22 release; the test runner uses `node:sqlite` and built-in TypeScript stripping.
 
 ```sh
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_example.sql
+git clone https://github.com/AVsolos/mern-endterm.git
+cd mern-endterm
+npm ci
+npm run build
 ```
 
-Replace the filename with the pending migration and `DB` with your D1 binding name if different. Use `.wrangler/state`, not `.wrangler/state/v3`; Wrangler adds the versioned directories. Do not replay migrations already applied locally. This updates only the preview database; publishing applies production migrations separately.
+Initialize the local database **once for a fresh checkout**, after building:
 
-## Diagnostic Commands
+```sh
+node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_yellow_proteus.sql
+```
 
-- `npm run install:ci`: perform the one locked dependency install
-- `npm run dev`: start the Vite/Vinext development server
-- `npm run build`: build the deployable Sites artifact
-- `npm run start`: preview the built Worker locally with D1/R2 support
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+Then start the application:
 
-When using the Sites plugin, follow its skill instructions for installation, builds, and publishing. These npm commands remain available for standalone use.
+```sh
+npm run dev -- --hostname 127.0.0.1
+```
 
-The portable build runs Vinext directly without a host `timeout` command. The managed-linux build uses `scripts/build-verified.sh` and its existing `SITES_BUILD_TIMEOUT` setting.
+Open the printed local URL (normally `http://127.0.0.1:5173`). Choose **Sign in with ChatGPT**; loopback development signs in as `Seedy` using the starter's mock identity. Create a workspace with samples and try the complete workflow. Local state persists under ignored `.wrangler/state`; restarting the server preserves it.
 
-## Learn More
+Do not reapply the initial SQL to an already initialized database. Later schema changes require new migrations (`npm run db:generate`) applied in order. Local and deployed D1 databases are separate. A clean clone defaults to the portable execution profile; no Codex plugin is needed to run locally.
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+### Useful commands
+
+```sh
+npm test                 # 12 workflow/security/transaction tests
+npm run typecheck        # TypeScript checks
+npm run build            # Production Worker + browser bundles
+npm start                # Preview built Worker, without local mock sign-in
+npm run db:generate      # Generate migration after intentional schema changes
+```
+
+Use `npm run dev` for the interactive local demo because `npm start` deliberately does not simulate the production identity gateway. Never deploy the development mock sign-in.
+
+## Environment variables and security
+
+No API key or application secret is required for local setup. `.env.example` documents optional diagnostics. The hosted D1 binding is `DB`, declared in `.openai/hosting.json`; Sites provisions it. There are no passwords stored by BorrowLab.
+
+Verified user identity comes from the hosting gateway. The server ignores any user ID or role in request bodies, checks workspace membership on every operation, and limits borrowers to their own reservation details. Invitation codes are random UUIDs and visible only to managers. All database queries bind parameters. React escapes rendered input. Writes require same-origin JSON requests and enforce a small body limit. Errors return user-safe messages. Secrets and runtime state are ignored by Git.
+
+Deploy behind the supported Sites identity gateway. A directly exposed Worker that trusts caller-supplied identity headers is **not** a supported production deployment. Invitations are bearer grants: share them only with intended team members. Joining does not prove campus membership.
+
+## Deployment
+
+Application URL: **https://borrowlab-avsolos.nimblespoon35.chatgpt.site**
+
+The project is configured for Sites hosting with Cloudflare Worker and D1 resources. Publication builds the current source, pushes that exact commit to the Site source repository, packages it, saves a version, and deploys the saved version. Hosted schema migrations are applied during publication. Public reachability does not make workspace data public; protected workflows still require sign-in and membership.
+
+GitHub Actions checks the source but does not hold deployment credentials or automatically publish. The `.openai/hosting.json` project ID identifies this deployment and is not a secret. For an independent fork, provision your own Site and use its ID rather than deploying into the author's project.
+
+## Reliability and limits
+
+The UI handles loading, empty results, validation errors, failed requests, timeouts, and saved-state feedback. Availability refreshes every 30 seconds and after actions; final reservation checks happen on the server. The local browser walkthrough verified creation, reservation, checkout, return, persistence, and audit history.
+
+The project intentionally excludes payments, email/SMS reminders, uploads, recurring bookings, offline writes, member removal, and ownership transfer. Booking history displays the newest 250 records; activity shows the newest 80. Conflict checks cover all active bookings. See [verification](docs/verification.md) for precise test coverage and known limitations.
+
+## Originality and AI usage
+
+The product model, reservation service, authorization rules, transaction design, tests, and BorrowLab interface were developed for this project with AI assistance. It is not a renamed booking tutorial. The infrastructure scaffold comes from the OpenAI Sites Vinext starter; retained helper code, UI primitives, and vendor licenses remain in their original directories. Dependencies are recorded in the lockfile. Lucide supplies interface icons; Google Fonts supplies DM Sans and Manrope with system-font fallbacks. No photographs or proprietary asset packs are used.
+
+AI was used for planning, implementation, documentation, and testing. Generated output was checked through automated tests, production builds, and actual browser workflows. The student should understand and be ready to explain the engineering decisions.
+
+## Submission status
+
+The [submission checklist](docs/submission-checklist.md) separates implementation from delivery. A demo script is included, but it is not a substitute for an accessible demo video. The official form must be submitted by **27 October 2026, 11:59 PM IST**. See [prepared submission details](docs/submission-details.md) and verify all final links before submitting.

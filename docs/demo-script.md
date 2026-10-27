@@ -1,0 +1,20 @@
+# BorrowLab — 3–5 minute demo
+
+Presenter: **Atharva Singh**
+
+Use the deployed application. Sign in before recording so credentials never appear. Create a fresh workspace with sample equipment. Use two signed-in browser profiles to demonstrate separate manager and borrower roles if available; automated tests cover both roles when only one account is available.
+
+| Time      | Show                                                                                             | Explain                                                                                                                                                                                                                            |
+| --------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0:00–0:25 | Equipment catalog                                                                                | “I’m Atharva Singh. BorrowLab helps campus clubs and labs share equipment without conflicting reservations or lost handover records.”                                                                                              |
+| 0:25–0:55 | Workspace → create with samples → inventory                                                      | “Each team has its own workspace and manager. Sample equipment becomes persistent inventory, not mock interface data.”                                                                                                             |
+| 0:55–1:25 | Workspace invitation and optional second account join                                            | “An invitation grants borrower membership, never manager permission. Every API operation verifies membership. Rotating the code stops future joins with the old invitation.” Do not display an invitation for a real private team. |
+| 1:25–2:05 | Search for camera, set pickup five minutes ahead, choose a two-hour slot, reserve with a purpose | “The final write checks conflicts atomically. Back-to-back slots are valid, but overlapping bookings cannot both succeed.” Show the item becoming unavailable for the selected slot.                                               |
+| 2:05–2:40 | Reservations → check out                                                                         | “Only a manager can hand equipment over, starting 15 minutes before the slot. A checked-out item blocks new reservations until it comes back. Late returns are flagged.”                                                           |
+| 2:40–3:10 | Record return with condition note → History                                                      | “The state changes from reserved to checked out to returned. Repeated submissions are safe. The return frees the asset and preserves the condition note.”                                                                          |
+| 3:10–3:35 | Mark returned asset for maintenance; try reserving it                                            | “Maintenance prevents new reservations. If an asset has future bookings, the manager must resolve them first.” Restore service afterward.                                                                                          |
+| 3:35–4:00 | Activity → refresh → GitHub README                                                               | “These are database records and survive a reload. Transactional audit records track changes. The repository includes domain tests, authorization tests, concurrency tests, setup instructions, and a real development history.”    |
+
+Finish with the repository and deployed URL. Spend the demo on the product rather than reading code. Upload the final recording with evaluator-accessible viewing permissions and verify the URL in a private browser.
+
+The existence of this script does **not** count as a submitted demo video. Track recording and publication separately in the submission checklist.
