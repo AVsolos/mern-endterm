@@ -4,6 +4,9 @@
 
 [Vercel application](https://borrowlab-mern.vercel.app) · [GitHub and development history](https://github.com/AVsolos/mern-endterm) · [Architecture](docs/product-and-architecture.md) · [Verification](docs/verification.md) · [Demo script](docs/demo-script.md)
 
+## Demo link
+https://drive.google.com/file/d/1LQMBgFaOEy_0mL0c9fyCJjIZ6ZtcMGH6/view?usp=sharing
+
 ## Problem, users, and solution
 
 Equipment shared through group chats has no reliable availability calendar or handover record. BorrowLab gives managers and student borrowers private workspaces, conflict-safe reservations, a verified test booking fee, and a traceable pickup-to-return workflow.
