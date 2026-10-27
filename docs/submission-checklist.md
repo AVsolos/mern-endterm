@@ -57,4 +57,3 @@ Official form: https://forms.gle/sBy4sfqyiRG2Zpom9
 6. Complete deployment, evaluator documentation, demo, and submission evidence.
 
 Each milestone should produce its own honest commit; never fabricate dates or backfill a misleading history.
-

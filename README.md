@@ -1,145 +1,106 @@
 # BorrowLab
 
-**Good things are better shared.** Equipment booking and handover management for campus labs, clubs, and creative teams.
+**Good things are better shared.** Shared equipment booking for campus labs, clubs, and creative teams. Built by **Atharva Singh**.
 
-Built by **Atharva Singh** for the End-Term Software Project.
+[GitHub and development history](https://github.com/AVsolos/mern-endterm) · [Architecture](docs/product-and-architecture.md) · [Verification](docs/verification.md) · [Demo script](docs/demo-script.md)
 
-- [Application](https://borrowlab-avsolos.nimblespoon35.chatgpt.site)
-- [Source and commit history](https://github.com/AVsolos/mern-endterm)
-- [Architecture and product decisions](docs/product-and-architecture.md)
-- [Verification and limitations](docs/verification.md)
-- [Demo script](docs/demo-script.md) · [Submission details](docs/submission-details.md)
+## Problem, users, and solution
 
-## Problem statement and target users
+Equipment shared through group chats has no reliable availability calendar or handover record. BorrowLab gives managers and student borrowers private workspaces, conflict-safe reservations, a verified test booking fee, and a traceable pickup-to-return workflow.
 
-A camera shared through a group chat has no reliable availability calendar, handover record, or clear return responsibility. Campus lab managers and student club members need a lightweight shared system that prevents conflicting bookings and tracks physical equipment from reservation to return.
+## Five core workflows
 
-## Solution and key features
+1. Register or sign in; create a workspace with optional sample inventory, or join with an invitation. Managers can rotate invitations.
+2. Search and filter equipment, select a time slot, and reserve with a purpose. Overlapping reservations cannot both commit.
+3. Pay a server-priced booking fee through **Razorpay test mode**. The server verifies the signature and provider payment before allowing pickup. A status check recovers missed callbacks.
+4. Managers check equipment out and record its return and condition. Borrowers can cancel their own uncollected reservations. Overdue loans remain unavailable until returned.
+5. Managers add uniquely tagged assets, manage maintenance, and inspect persistent audit history.
 
-BorrowLab organizes equipment into private team workspaces. The creator manages inventory and handovers; invited borrowers reserve equipment and manage their own bookings.
+Sample assets become ordinary MongoDB records; they are created only when requested. Booking, payment, and user state are not simulated in the application. Only Razorpay money movement uses its test environment.
 
-1. **Create or join a workspace.** Use ChatGPT sign-in, create a workspace, optionally load six sample assets, or join using a manager's invitation. Rotate invitations when necessary.
-2. **Find and reserve equipment.** Search by name, tag, or location; filter categories and availability; choose a future time slot and explain the purpose. The database checks conflicts atomically before saving.
-3. **Complete the loan.** Managers check equipment out and record returns with condition notes. Borrowers can cancel uncollected reservations. Overdue loans remain blocked until returned.
-4. **Keep inventory trustworthy.** Add uniquely tagged assets, place equipment in maintenance only when commitments are resolved, and review a persistent activity trail.
+## MERN stack and architecture
 
-This is a working database-backed application. Sample assets are created only on request in a new workspace and then behave as ordinary inventory. The interface does not hardcode bookings or success states.
-
-## Try it as an evaluator
-
-Open the application and sign in with ChatGPT. Create a workspace with sample equipment. Set pickup about five minutes ahead and return two hours later, then reserve a camera. Open **Reservations**, check out the camera, and record its return. Open **History** and **Activity**, then reload to verify persistence.
-
-To test borrower permissions, copy the workspace invitation under **Workspace** and join from a second ChatGPT account. Borrowers see availability and their own reservations, cannot view the invitation/audit trail, and cannot manage inventory or handovers.
-
-No author approval or shared administrator password is needed to create your own evaluator workspace. Hosted sign-in requires a ChatGPT account. Local testing uses the starter's development identity instead.
-
-## Tech stack
-
-| Component    | Choice                                                    | Why                                                                    |
-| ------------ | --------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Interface    | React 19, TypeScript, CSS, Lucide icons                   | Typed interaction state and an accessible responsive interface         |
-| Server       | Vinext/Vite on Cloudflare Workers                         | Route handlers and React rendering in one deployable app               |
-| Persistence  | Cloudflare D1 / SQLite                                    | Relational constraints and atomic statements for resource reservations |
-| Schema       | Drizzle and checked-in SQL migrations                     | Versioned and reproducible schema changes                              |
-| Identity     | Sites / ChatGPT sign-in                                   | Verified identity at the hosting gateway without storing passwords     |
-| Verification | Node test runner, real SQLite, TypeScript, GitHub Actions | Reproducible domain, authorization, transaction, and build checks      |
-
-The repository name is `mern-endterm`, but this project does **not** claim to use MongoDB or Express. The supplied guidelines permit any appropriate stack.
-
-## Architecture
+| Layer     | Technology                                                                   |
+| --------- | ---------------------------------------------------------------------------- |
+| Database  | MongoDB Atlas, official MongoDB Node driver, replica-set transactions        |
+| API       | Express 5 on Node.js                                                         |
+| Interface | React 19, TypeScript, Vite, CSS, Lucide icons                                |
+| Payments  | Razorpay Orders, Standard Checkout, payment fetch/capture, HMAC verification |
+| Hosting   | Vercel static frontend and Node API function                                 |
+| Tests     | Node test runner, actual isolated MongoDB replica set, Supertest             |
 
 ```mermaid
 flowchart LR
-  Browser[React interface] --> Gateway[Sites identity gateway]
-  Gateway --> API[Vinext route handlers]
-  API --> Service[Authorized workflow service]
-  Service --> D1[(D1 / SQLite)]
-  D1 --> Records[Workspaces / members / equipment / bookings / audit]
+  React[React browser UI] --> Express[Express API on Vercel]
+  Express --> Mongo[(MongoDB Atlas)]
+  Express --> Razorpay[Razorpay test API]
+  React --> Checkout[Razorpay Standard Checkout]
+  Checkout --> Express
 ```
 
-- `app/borrowlab.tsx`: catalog, reservations, handover dialogs, activity, and workspace controls.
-- `app/api/workspace/route.ts`: authentication, request validation, origin checks, error mapping, and service dispatch.
-- `lib/domain.ts`: types, input/time validation, and availability rules shared where appropriate.
-- `lib/service.ts`: membership checks, parameterized database queries, atomic booking operations, and transactional audit writes.
-- `db/schema.ts` and `drizzle/`: relational model and schema migrations.
-- `tests/workflows.test.ts`: service tests against real SQLite with migrations applied.
-- `worker/`, `scripts/`, and `.openai/hosting.json`: runtime, build, local development, and Sites deployment configuration.
-
-### Data and consistency
-
-Each equipment record is one physical asset. Asset tags are unique within a workspace. Reservations use half-open time intervals `[start, end)`, so a reservation may start exactly when another ends. An atomic `INSERT ... SELECT ... WHERE NOT EXISTS` checks service status and all conflicting reservations before creating a booking. Reading availability in the UI alone never grants the reservation.
-
-A loan follows `reserved → checked_out → returned`, or `reserved → cancelled`. Conditional updates enforce transitions. Checkout is manager-only, opens 15 minutes before pickup, and closes when the reservation ends. Checked-out equipment blocks new reservations until returned. Expired uncollected bookings stay in history and no longer block later slots.
-
-Each mutation and its audit insertion share a D1 batch transaction. Booking UUIDs support safe repeated submission. Times are stored as Unix milliseconds and displayed in the user's browser timezone. See the [architecture document](docs/product-and-architecture.md) for details and tradeoffs.
+`client/` contains the interface; `server/app.ts` maps HTTP requests to authentication, `server/service.ts` workflows, and `server/payments.ts` verification. `api/index.ts` reuses a MongoDB connection pool in warm Vercel instances. `lib/domain.ts` defines validation and domain types. `tests/` covers permissions, conflicts, transitions, payments, and failures.
 
 ## Local setup
 
-Requires **Node.js 22.18+**, npm, and Git. Windows, macOS, and Linux are supported. Use a current Node 22 release; the test runner uses `node:sqlite` and built-in TypeScript stripping.
+Requires Node **22.18+** and a MongoDB Atlas cluster or local replica set. A standalone MongoDB server cannot run the required transactions.
 
 ```sh
 git clone https://github.com/AVsolos/mern-endterm.git
 cd mern-endterm
 npm ci
+cp .env.example .env
+# Fill in your own database and Razorpay TEST credentials.
+npm run dev
+```
+
+On PowerShell use `Copy-Item .env.example .env`. Open http://127.0.0.1:5173. Express runs on port 3001 and Vite proxies `/api`. Accounts use email/password; no external identity account is required. Use a password of at least 10 characters. Database indexes initialize on connection.
+
+```sh
+npm run typecheck
+npm test
 npm run build
 ```
 
-Initialize the local database **once for a fresh checkout**, after building:
+Tests start an isolated local MongoDB replica set and never use the Atlas credentials. The first run downloads a MongoDB binary and needs internet access. For a standalone production Node server, build first and run `npm start` with production HTTPS origin configuration.
 
-```sh
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_yellow_proteus.sql
-```
+## Environment variables
 
-Then start the application:
+Keep `.env` ignored. Never put credentials in `VITE_*` variables, frontend code, or Git.
 
-```sh
-npm run dev -- --hostname 127.0.0.1
-```
+| Variable                                               | Purpose                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------- |
+| `MONGODB_URI`                                          | Full connection URI; alternatively set the three fields below       |
+| `MONGODB_HOST`, `MONGODB_USERNAME`, `MONGODB_PASSWORD` | Atlas hostname and database user credentials; encoded by the server |
+| `MONGODB_DB`                                           | Database name, default `borrowlab`                                  |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`               | Test credentials only; live keys are rejected                       |
+| `RAZORPAY_WEBHOOK_SECRET`                              | Optional separate signing secret for `payment.captured` webhooks    |
+| `BOOKING_FEE_PAISE`                                    | Integer fee, default `10000` (INR 100)                              |
+| `APP_ORIGIN`                                           | Exact browser origin; local default `http://127.0.0.1:5173`         |
+| `PORT`                                                 | Standalone Express port, default `3001`                             |
+| `NODE_ENV`                                             | Use `production` for secure cookies and HTTPS origin enforcement    |
 
-Open the printed local URL (normally `http://127.0.0.1:5173`). Choose **Sign in with ChatGPT**; loopback development signs in as `Seedy` using the starter's mock identity. Create a workspace with samples and try the complete workflow. Local state persists under ignored `.wrangler/state`; restarting the server preserves it.
+On Vercel, omit the local `APP_ORIGIN`: the server derives the production domain from `VERCEL_PROJECT_PRODUCTION_URL` and preview origin from `VERCEL_URL`. For a custom domain, set `APP_ORIGIN` to its exact HTTPS origin. Set MongoDB and Razorpay variables as sensitive server environment variables. Atlas network access must permit the deployment's outbound traffic.
 
-Do not reapply the initial SQL to an already initialized database. Later schema changes require new migrations (`npm run db:generate`) applied in order. Local and deployed D1 databases are separate. A clean clone defaults to the portable execution profile; no Codex plugin is needed to run locally.
+## Vercel deployment
 
-### Useful commands
+Import this repository into Vercel using the **Vite** preset, repository root, `npm run build`, and `dist` output. `vercel.json` routes `/api/*` to the shared Express function. Configure the variables above, then deploy. Set production deployment access to public so evaluators can reach the sign-in page; app workspace data remains authenticated and membership-protected. Git auto-deploy requires the Vercel GitHub integration. Direct source deployments are also supported.
 
-```sh
-npm test                 # 12 workflow/security/transaction tests
-npm run typecheck        # TypeScript checks
-npm run build            # Production Worker + browser bundles
-npm start                # Preview built Worker, without local mock sign-in
-npm run db:generate      # Generate migration after intentional schema changes
-```
+Verify `/api/health` returns `database: mongodb`, register a fresh account, reserve and pay in test mode, check out and return, then reload. Do not treat a successful frontend build as proof of database connectivity. Final URL and release evidence are recorded in [submission details](docs/submission-details.md).
 
-Use `npm run dev` for the interactive local demo because `npm start` deliberately does not simulate the production identity gateway. Never deploy the development mock sign-in.
+Optional webhook: configure Razorpay test dashboard to send `payment.captured` to `https://YOUR_DOMAIN/api/payments/webhook`, with the same separate signing secret. Browser verification and **Check payment status** work without webhook setup.
 
-## Environment variables and security
+## Evaluator walkthrough
 
-No API key or application secret is required for local setup. `.env.example` documents optional diagnostics. The hosted D1 binding is `DB`, declared in `.openai/hosting.json`; Sites provisions it. There are no passwords stored by BorrowLab.
+Register, create a workspace with samples, and reserve a camera with pickup five minutes ahead and return two hours later. Open Reservations: equipment checkout is blocked while unpaid. Click **Pay INR 100 - test**, complete Razorpay's test flow, then check out and return with a condition note. Inspect History and Activity and reload. Use a second account and invitation to verify borrower permissions.
 
-Verified user identity comes from the hosting gateway. The server ignores any user ID or role in request bodies, checks workspace membership on every operation, and limits borrowers to their own reservation details. Invitation codes are random UUIDs and visible only to managers. All database queries bind parameters. React escapes rendered input. Writes require same-origin JSON requests and enforce a small body limit. Errors return user-safe messages. Secrets and runtime state are ignored by Git.
+## Security, scope, and limitations
 
-Deploy behind the supported Sites identity gateway. A directly exposed Worker that trusts caller-supplied identity headers is **not** a supported production deployment. Invitations are bearer grants: share them only with intended team members. Joining does not prove campus membership.
+Passwords use salted scrypt; opaque session tokens are stored as hashes, expire after seven days, and travel in HttpOnly cookies (Secure in production). Mutations require the expected origin and JSON. Every operation checks workspace membership and manager/borrower permissions. Payment amounts come from saved server state; duplicate callbacks and lost order responses are handled. Mutations and audit records share MongoDB transactions.
 
-## Deployment
+Rate limiting is per Node instance, so it is not a distributed abuse defense on Vercel. This student project has no email verification, password reset, real-money billing, refunds, recurring payments, or notifications. Lists show at most 250 recent reservations; availability checks all active bookings. Browser timezone controls displayed times.
 
-Application URL: **https://borrowlab-avsolos.nimblespoon35.chatgpt.site**
+## Originality and development
 
-The project is configured for Sites hosting with Cloudflare Worker and D1 resources. Publication builds the current source, pushes that exact commit to the Site source repository, packages it, saves a version, and deploys the saved version. Hosted schema migrations are applied during publication. Public reachability does not make workspace data public; protected workflows still require sign-in and membership.
+BorrowLab's product workflows and interface were developed for this submission with AI assistance. The initial history used a Sites/Vinext/D1 scaffold. After the student's explicit MERN requirement, the runtime, persistence, and authentication were replaced with MongoDB, Express, React, and Node. No initial MongoDB connection was claimed by that old implementation. The obsolete Sites build is not the final release. Open-source dependencies are recorded in `package.json` and its lockfile.
 
-GitHub Actions checks the source but does not hold deployment credentials or automatically publish. The `.openai/hosting.json` project ID identifies this deployment and is not a secret. For an independent fork, provision your own Site and use its ID rather than deploying into the author's project.
-
-## Reliability and limits
-
-The UI handles loading, empty results, validation errors, failed requests, timeouts, and saved-state feedback. Availability refreshes every 30 seconds and after actions; final reservation checks happen on the server. The local browser walkthrough verified creation, reservation, checkout, return, persistence, and audit history.
-
-The project intentionally excludes payments, email/SMS reminders, uploads, recurring bookings, offline writes, member removal, and ownership transfer. Booking history displays the newest 250 records; activity shows the newest 80. Conflict checks cover all active bookings. See [verification](docs/verification.md) for precise test coverage and known limitations.
-
-## Originality and AI usage
-
-The product model, reservation service, authorization rules, transaction design, tests, and BorrowLab interface were developed for this project with AI assistance. It is not a renamed booking tutorial. The infrastructure scaffold comes from the OpenAI Sites Vinext starter; retained helper code, UI primitives, and vendor licenses remain in their original directories. Dependencies are recorded in the lockfile. Lucide supplies interface icons; Google Fonts supplies DM Sans and Manrope with system-font fallbacks. No photographs or proprietary asset packs are used.
-
-AI was used for planning, implementation, documentation, and testing. Generated output was checked through automated tests, production builds, and actual browser workflows. The student should understand and be ready to explain the engineering decisions.
-
-## Submission status
-
-The [submission checklist](docs/submission-checklist.md) separates implementation from delivery. A demo script is included, but it is not a substitute for an accessible demo video. The official form must be submitted by **27 October 2026, 11:59 PM IST**. See [prepared submission details](docs/submission-details.md) and verify all final links before submitting.
+A demo script is provided, but a script is not a recorded video. The final demo video and official submission form remain separate delivery requirements; see [checklist](docs/submission-checklist.md).

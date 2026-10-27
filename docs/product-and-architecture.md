@@ -1,48 +1,27 @@
-# BorrowLab
+# Product and architecture
 
-## Problem and users
+BorrowLab serves campus equipment managers and borrowers. The five workflows are workspace membership, conflict-safe reservation, verified test payment, manager handover/return, and inventory/audit management.
 
-Student clubs and small campus labs share cameras, audio gear, electronics, and tools. Chat-based lending loses availability information and accountability. BorrowLab gives members a reliable reservation schedule and gives equipment managers a controlled handover workflow.
+## Runtime
 
-## Four complete workflows
+React/Vite is served by Vercel's static delivery. All `/api/*` routes enter `api/index.ts`, which initializes and reuses a bounded MongoDB pool and delegates to Express. Local development runs Express and Vite separately with a same-origin proxy. Database, sessions, and audit state are in MongoDB Atlas, never the function filesystem.
 
-1. **Set up a shared workspace:** sign in, create a workspace, load optional sample equipment, and invite members using a revocable join code. Joining never grants management access.
-2. **Discover and reserve:** search/filter real inventory, choose start/end times, check conflicts, submit a purpose, and receive a persisted reservation. Simultaneous requests cannot double-book an asset.
-3. **Manage a loan:** borrowers see/cancel their reservations; managers check equipment out and record returns. The server enforces ownership, role, timing, and legal status transitions. Late returns are highlighted.
-4. **Maintain inventory:** managers add equipment, change service status safely, review workspace bookings, and inspect an append-only activity trail.
+## Data and consistency
 
-## Stack and boundaries
+Collections: users, sessions, workspaces, members, equipment, bookings, audit, webhooks. Unique indexes protect normalized email, workspace invitation, workspace membership, asset tags, and provider order/payment IDs. Sessions and webhook deduplication records have TTL indexes; authentication also checks expiry directly.
 
-- React and TypeScript UI with Vinext route handlers.
-- Cloudflare Worker API and D1/SQLite persistent relational storage.
-- Drizzle schema and checked-in SQL migrations; parameterized SQL for atomic workflow commands.
-- Sites/ChatGPT identity at the hosting gateway. Local mock identity is loopback-only development behavior supplied by the starter.
-- Node's test runner and a real SQLite adapter test service logic, permissions, constraints, and concurrent reservation behavior.
+Every equipment-changing transaction writes its equipment revision before checking availability. Competing transactions contend on that shared document and retry, preventing write skew. Reservation and audit records commit together. Slots use half-open intervals `[start,end)`; adjacent reservations are allowed. Checked-out equipment blocks every new reservation until returned. Expired uncollected reservations remain history but stop blocking future slots.
 
-Every workspace has an owner/manager and members. Workspace membership is checked on each API operation. A high-entropy, rotatable join code is a bearer invitation; only the manager can see it. Client requests never determine user identity or role. Workspaces isolate evaluator demos from other users' data.
+Booking states are `reserved -> checked_out -> returned`, or `reserved -> cancelled`. Conditional updates enforce state transitions. Checkout requires manager role, verified payment, and a time from 15 minutes before pickup until reservation end. Maintenance requires resolving active commitments first. Invitation rotation and joins serialize on the workspace revision.
 
-## Consistency rules
+## Payment lifecycle
 
-- One equipment row represents one physical asset with a unique asset tag per workspace.
-- Booking intervals are half-open `[start, end)`, permitting back-to-back reservations.
-- Minimum duration is 15 minutes; maximum is 7 days; start must be within the next 90 days.
-- An atomic conditional INSERT both checks availability and creates the booking. Availability shown in the browser is advisory; the write is authoritative.
-- A checked-out item blocks new reservations until returned, including when overdue.
-- State transitions are conditional UPDATEs. Only managers check out or return; borrowers can cancel only their own reserved bookings. Managers can cancel reserved bookings in their workspace.
-- Handover opens 15 minutes before the reservation and closes at its end. Returns are allowed whenever checked out.
-- Maintenance cannot be enabled while an item has a future/current reservation or an outstanding loan.
-- Client-generated UUIDs make booking submission retries idempotent; reuse with changed fields fails.
-- Mutation and audit insertion use a single database batch transaction.
-- All timestamps persist as Unix milliseconds; UI input/display uses the browser's local timezone.
+The API saves the fee at reservation time. Only the booking owner can create/pay/reconcile an order. Order creation uses a database claim and a deterministic booking receipt; retries search the provider before creating another order. The callback HMAC uses the stored order ID. The server then checks the provider payment's order, amount, INR currency, and captured status, capturing an authorized test payment if needed. Paid status and audit insert commit together.
 
-## Commit milestones
+Raw-body webhooks require their separate HMAC and event ID. Repeated callbacks/events are idempotent. Reconciliation fetches provider state when the browser callback is lost. A late payment never revives a cancelled reservation. All fees are explicitly non-refundable simulations; live keys are rejected.
 
-Requirements → scaffold and design → persistent workflow engine with tests → complete UI → verification and fixes → release documentation and deployment.
+## Boundaries and tradeoffs
 
-## Scope limits
+Opaque sessions are hashed in MongoDB; passwords are salted scrypt hashes. SameSite cookies, exact-origin mutation checks, bounded JSON, authorization, and sanitized errors protect APIs. Each Vercel instance has its own rate-limit counters. A distributed limiter, account recovery, email verification, production billing/refunds, and notifications are outside this submission.
 
-No payments, attachments, notifications, recurring bookings, or equipment quantity pools. No claim of school-wide identity verification: possession of a workspace invitation grants borrower membership. Authentication requires a ChatGPT account on hosted Sites. An evaluator can create their own workspace after sign-in.
-
-## Delivery evidence
-
-Deployment, GitHub publication, demo video, and form completion are tracked separately in `submission-checklist.md`; source completion does not imply final submission.
+The database must be Atlas or a replica set because transactional correctness is part of the design. Cold starts establish a small pool and verify indexes. No database credentials or Razorpay secrets are shipped in the React bundle. Public deployment permits evaluator registration; private workspace records still require membership.

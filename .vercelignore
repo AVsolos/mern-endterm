@@ -1,0 +1,9 @@
+.env*
+!.env.example
+outputs
+tests
+docs
+.sites-runtime
+.wrangler
+.agents
+.codex
