@@ -10,9 +10,18 @@ Date: 27 October 2026. Stack: MongoDB, Express, React, Node.js.
 
 Coverage includes concurrent conflicting reservations, adjacent slots, membership/manager isolation, state transitions, maintenance, transactional audit rollback, server-priced reusable orders, duplicate callbacks, lost order responses, forged signatures, incorrect payment amount/currency/order/status, authorized capture, late payment after cancellation, callback reconciliation, signed webhooks, password/session hashing, origin checks, logout, malformed and oversized input.
 
-Webhook signature and deduplication behavior is tested locally. Delivery from the Razorpay dashboard is not configured or claimed. Vercel deployment verification is recorded separately once complete. A recorded demo and submitted form are not implied by these tests.
+Webhook signature and deduplication behavior is tested locally. Delivery from the Razorpay dashboard is not configured or claimed. Hosted verification is recorded below. A recorded demo and submitted form are not implied by these tests.
 
 ## Vercel release status
 
-Production frontend: https://borrowlab-mern.vercel.app
-The Vercel build is ready and public. Runtime module imports were corrected using TypeScript relative-import rewriting and Node 22. The latest API check is blocked by MongoDB connectivity: new local connections also report `MongoServerSelectionError` with TLS alert errors. Atlas network access and cluster status need verification before this can be marked a healthy evaluator deployment. Earlier browser evidence of payment, checkout, and return was recorded before these new connections failed.
+Production application: https://borrowlab-mern.vercel.app
+
+- Vercel production deployment is READY and publicly accessible.
+- TypeScript relative-import rewriting and Node 22 fix the serverless module imports.
+- The student updated Atlas network access. Fresh Atlas connectivity and transaction support pass; the public `/api/health` returns `{"status":"ok","database":"mongodb","payments":"test"}`.
+- Production email/password sign-in succeeds with the existing Atlas account. The deployed app reads the same workspace and inventory, and a new reservation persists through the Vercel Express API.
+- GitHub is publicly accessible without authentication (HTTP 200).
+
+The temporary Atlas access-list failure is resolved. No credentials were committed. Git auto-deploy is not connected because the Vercel GitHub integration is absent; the verified release was deployed directly from the same local source.
+
+Hosted end-to-end check: reserved Rode Wireless GO II through Vercel, completed INR 100 Razorpay test payment, received server-verified Test Fee Paid status, then checked out and returned the equipment with a condition note. Reload preserved the paid and returned records. No real money was charged.

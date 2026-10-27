@@ -2,7 +2,7 @@
 
 **Good things are better shared.** Shared equipment booking for campus labs, clubs, and creative teams. Built by **Atharva Singh**.
 
-[Vercel application](https://borrowlab-mern.vercel.app) (Atlas connectivity recovery pending) · [GitHub and development history](https://github.com/AVsolos/mern-endterm) · [Architecture](docs/product-and-architecture.md) · [Verification](docs/verification.md) · [Demo script](docs/demo-script.md)
+[Vercel application](https://borrowlab-mern.vercel.app) · [GitHub and development history](https://github.com/AVsolos/mern-endterm) · [Architecture](docs/product-and-architecture.md) · [Verification](docs/verification.md) · [Demo script](docs/demo-script.md)
 
 ## Problem, users, and solution
 
@@ -104,4 +104,3 @@ Rate limiting is per Node instance, so it is not a distributed abuse defense on 
 BorrowLab's product workflows and interface were developed for this submission with AI assistance. The initial history used a Sites/Vinext/D1 scaffold. After the student's explicit MERN requirement, the runtime, persistence, and authentication were replaced with MongoDB, Express, React, and Node. No initial MongoDB connection was claimed by that old implementation. The obsolete Sites build is not the final release. Open-source dependencies are recorded in `package.json` and its lockfile.
 
 A demo script is provided, but a script is not a recorded video. The final demo video and official submission form remain separate delivery requirements; see [checklist](docs/submission-checklist.md).
-

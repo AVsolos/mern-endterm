@@ -24,12 +24,12 @@ Official form: https://forms.gle/sBy4sfqyiRG2Zpom9
 - [x] Create meaningful commits as actual development milestones are completed.
 - [x] README includes name, problem, users, solution, features, stack, architecture, setup, configuration, and deployment.
 - [x] Source is available to evaluators through GitHub.
-- [ ] Deployment/build is accessible with clear run instructions.
+- [x] Deployment/build is accessible with clear run instructions.
 
 ## Delivery gates — do not mark complete without verification
 
 - [x] Final GitHub repository URL verified without additional permissions (HTTP 200).
-- [ ] Final deployment/build URL verified without additional permissions.
+- [x] Final deployment/build URL verified without additional permissions; public Vercel health reports MongoDB healthy.
 - [ ] A 3–5 minute demo shows the problem, users, major workflows, interesting logic, and working product.
 - [ ] Demo video URL verified without additional permissions.
 - [ ] Student name and final submission details completed.
@@ -57,4 +57,3 @@ Official form: https://forms.gle/sBy4sfqyiRG2Zpom9
 6. Complete deployment, evaluator documentation, demo, and submission evidence.
 
 Each milestone should produce its own honest commit; never fabricate dates or backfill a misleading history.
-
