@@ -169,7 +169,15 @@ function GearArt({ category }: { category: string }) {
   );
 }
 
-export default function BorrowLab({ user, onSignIn, onSignOut }: { user: Actor | null; onSignIn: () => void; onSignOut: () => void }) {
+export default function BorrowLab({
+  user,
+  onSignIn,
+  onSignOut,
+}: {
+  user: Actor | null;
+  onSignIn: () => void;
+  onSignOut: () => void;
+}) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]),
     [selected, setSelected] = useState("");
   const [data, setData] = useState<Snapshot | null>(null),
@@ -177,7 +185,10 @@ export default function BorrowLab({ user, onSignIn, onSignOut }: { user: Actor |
     [busy, setBusy] = useState(false);
   const [error, setError] = useState(""),
     [notice, setNotice] = useState("");
-  const [feeConfig, setFeeConfig] = useState<{ bookingFee: number; paymentsConfigured: boolean } | null>(null);
+  const [feeConfig, setFeeConfig] = useState<{
+    bookingFee: number;
+    paymentsConfigured: boolean;
+  } | null>(null);
   const [tab, setTab] = useState("Equipment"),
     [search, setSearch] = useState(""),
     [category, setCategory] = useState("All equipment"),
@@ -190,7 +201,12 @@ export default function BorrowLab({ user, onSignIn, onSignOut }: { user: Actor |
   const generation = useRef(0),
     mutationLock = useRef(false);
   useEffect(() => {
-    void fetch("/api/config", { signal: AbortSignal.timeout(15000) }).then(async r => { if (!r.ok) throw new Error("Could not load booking fees."); setFeeConfig(await r.json()); }).catch(e => setError(e.message));
+    void fetch("/api/config", { signal: AbortSignal.timeout(15000) })
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Could not load booking fees.");
+        setFeeConfig(await r.json());
+      })
+      .catch((e) => setError(e.message));
     const n = Math.ceil((Date.now() + 5 * 60000) / 60000) * 60000;
     setStart(localInput(n));
     setEnd(localInput(n + 2 * 3600000));
@@ -286,13 +302,23 @@ export default function BorrowLab({ user, onSignIn, onSignOut }: { user: Actor |
   }
   async function handlePayment(booking: Booking, reconcile = false) {
     if (mutationLock.current) return;
-    mutationLock.current = true; setBusy(true); setError("");
+    mutationLock.current = true;
+    setBusy(true);
+    setError("");
     try {
-      if (reconcile) await paymentRequest("reconcile", { bookingId: booking.id });
+      if (reconcile)
+        await paymentRequest("reconcile", { bookingId: booking.id });
       else await payBooking(booking.id);
-      setNotice("Test booking fee verified. Your manager can now check out the equipment.");
-    } catch (e) { setError(e instanceof Error ? e.message : "Payment verification failed."); }
-    finally { await refresh(selected); setBusy(false); mutationLock.current = false; }
+      setNotice(
+        "Test booking fee verified. Your manager can now check out the equipment.",
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Payment verification failed.");
+    } finally {
+      await refresh(selected);
+      setBusy(false);
+      mutationLock.current = false;
+    }
   }
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -514,9 +540,22 @@ export default function BorrowLab({ user, onSignIn, onSignOut }: { user: Actor |
               <i /> Built for sharing
             </span>
             <span className="avatar small">{initials}</span>
+            {user && (
+              <button
+                className="button secondary mobile-signout"
+                aria-label="Sign out on mobile"
+                onClick={() => void onSignOut()}
+              >
+                Sign out
+              </button>
+            )}
           </div>
         </header>
         <main id="main">
+          <div className="test-mode-banner">
+            Razorpay test mode · Simulated booking fees only. No real money is
+            charged.
+          </div>
           <div className="page-heading">
             <div>
               <div className="eyebrow">THE SHARED TOOLKIT</div>
@@ -588,10 +627,7 @@ export default function BorrowLab({ user, onSignIn, onSignOut }: { user: Actor |
                 Find what you need, reserve a time, and get creating. One shared
                 workspace for your club, lab, or team.
               </p>
-              <button
-                className="button"
-                onClick={onSignIn}
-              >
+              <button className="button" onClick={onSignIn}>
                 Sign in or create an account <ArrowUpRight size={18} />
               </button>
               <div className="welcome-features">
@@ -976,13 +1012,47 @@ export default function BorrowLab({ user, onSignIn, onSignOut }: { user: Actor |
                             <small className="booking-reference">
                               Reference {b.id.slice(0, 8).toUpperCase()}
                             </small>
-                            <div className="payment-status"><span className={`badge ${b.payment_status === "paid" ? "green" : ""}`}>{b.payment_status === "paid" ? "Test fee paid" : "Test fee due"} · ₹{(b.fee_paise / 100).toFixed(2)}</span>{b.payment_id && <small>{b.payment_id}</small>}</div>
+                            <div className="payment-status">
+                              <span
+                                className={`badge ${b.payment_status === "paid" ? "green" : ""}`}
+                              >
+                                {b.payment_status === "paid"
+                                  ? "Test fee paid"
+                                  : "Test fee due"}{" "}
+                                · ₹{(b.fee_paise / 100).toFixed(2)}
+                              </span>
+                              {b.payment_id && <small>{b.payment_id}</small>}
+                            </div>
                           </div>
                           <div className="booking-actions">
-                            {b.user_id === user?.userId && b.payment_status !== "paid" && <>
-                              {b.status === "reserved" && !expired && <button className="button" disabled={busy || !feeConfig?.paymentsConfigured} onClick={() => void handlePayment(b)}>Pay ₹{(b.fee_paise / 100).toFixed(2)} · test</button>}
-                              {b.payment_order_id && <button className="button secondary" disabled={busy} onClick={() => void handlePayment(b, true)}>Check payment status</button>}
-                            </>}
+                            {b.user_id === user?.userId &&
+                              b.payment_status !== "paid" && (
+                                <>
+                                  {b.status === "reserved" && !expired && (
+                                    <button
+                                      className="button"
+                                      disabled={
+                                        busy || !feeConfig?.paymentsConfigured
+                                      }
+                                      onClick={() => void handlePayment(b)}
+                                    >
+                                      Pay ₹{(b.fee_paise / 100).toFixed(2)} ·
+                                      test
+                                    </button>
+                                  )}
+                                  {b.payment_order_id && (
+                                    <button
+                                      className="button secondary"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        void handlePayment(b, true)
+                                      }
+                                    >
+                                      Check payment status
+                                    </button>
+                                  )}
+                                </>
+                              )}
                             {b.status === "reserved" && (
                               <>
                                 <button
@@ -996,7 +1066,9 @@ export default function BorrowLab({ user, onSignIn, onSignOut }: { user: Actor |
                                   <button
                                     className="button"
                                     disabled={
-                                      busy || b.starts_at > clock + 15 * 60000 || b.payment_status !== "paid"
+                                      busy ||
+                                      b.starts_at > clock + 15 * 60000 ||
+                                      b.payment_status !== "paid"
                                     }
                                     title="Requires verified payment and opens 15 minutes before pickup"
                                     onClick={() =>
@@ -1391,7 +1463,11 @@ export default function BorrowLab({ user, onSignIn, onSignOut }: { user: Actor |
                   <div className="booking-policy">
                     <ShieldCheck size={19} />
                     <p>
-                      Availability is checked again when you confirm. {feeConfig ? `A ₹${(feeConfig.bookingFee / 100).toFixed(2)} non-refundable TEST booking fee must be paid in Reservations before checkout. No real money is charged.` : "Loading the booking fee…"} Your manager handles pickup and return.
+                      Availability is checked again when you confirm.{" "}
+                      {feeConfig
+                        ? `A ₹${(feeConfig.bookingFee / 100).toFixed(2)} non-refundable TEST booking fee must be paid in Reservations before checkout. No real money is charged.`
+                        : "Loading the booking fee…"}{" "}
+                      Your manager handles pickup and return.
                     </p>
                   </div>
                 </>
@@ -1445,7 +1521,11 @@ export default function BorrowLab({ user, onSignIn, onSignOut }: { user: Actor |
                 >
                   Go back
                 </button>
-                <button type="submit" className="button">
+                <button
+                  type="submit"
+                  className="button"
+                  disabled={busy || (modal.kind === "reserve" && !feeConfig)}
+                >
                   {busy ? (
                     <>
                       <RefreshCw size={16} className="spin" /> Saving…

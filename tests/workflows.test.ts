@@ -1,7 +1,8 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { startMongo, freshStore, stopMongo } from "./mongo-fixture.ts";
-before(startMongo); after(stopMongo);
+before(startMongo);
+after(stopMongo);
 import { createService } from "../server/service.ts";
 
 import { AppError, interval, overlaps } from "../lib/domain.ts";
@@ -308,10 +309,11 @@ test("cross-workspace asset injection and another borrower's cancellation fail",
 });
 test("failed audit rolls back the booking transaction", async () => {
   const s = await setup();
-  await s.db.db.command({ collMod: "audit", validator: { impossible_field: { $exists: true } }, validationLevel: "strict" });
-  await assert.rejects(
-    s.borrower.reserve(s.booking()),
-    /validation/,
-  );
+  await s.db.db.command({
+    collMod: "audit",
+    validator: { impossible_field: { $exists: true } },
+    validationLevel: "strict",
+  });
+  await assert.rejects(s.borrower.reserve(s.booking()), /validation/);
   assert.equal((await s.manager.snapshot(s.workspaceId)).bookings.length, 0);
 });

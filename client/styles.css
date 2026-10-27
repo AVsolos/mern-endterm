@@ -1683,4 +1683,38 @@ dialog::backdrop {
     transform: none;
   }
 }
-.payment-status{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}.payment-status small{font-size:9px;color:#7e8a75;overflow-wrap:anywhere}.booking-actions{max-width:260px;justify-content:flex-end}.test-mode-banner{padding:11px 16px;background:#fff6dc;color:#88672e;font-size:11px;border-bottom:1px solid #eddfb3}.mobile-signout{display:none}@media(max-width:760px){.booking-actions{max-width:none;justify-content:flex-start}.mobile-signout{display:inline-flex}}
+.payment-status {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.payment-status small {
+  font-size: 9px;
+  color: #7e8a75;
+  overflow-wrap: anywhere;
+}
+.booking-actions {
+  max-width: 260px;
+  justify-content: flex-end;
+}
+.test-mode-banner {
+  padding: 11px 16px;
+  background: #fff6dc;
+  color: #88672e;
+  font-size: 11px;
+  border-bottom: 1px solid #eddfb3;
+}
+.mobile-signout {
+  display: none;
+}
+@media (max-width: 760px) {
+  .booking-actions {
+    max-width: none;
+    justify-content: flex-start;
+  }
+  .mobile-signout {
+    display: inline-flex;
+  }
+}
