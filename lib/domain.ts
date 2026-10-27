@@ -40,6 +40,11 @@ export type Booking = {
   return_note: string | null;
   equipment_name?: string;
   asset_tag?: string;
+  fee_paise: number;
+  payment_status: "unpaid" | "paid";
+  payment_order_id?: string;
+  payment_id?: string;
+  paid_at?: number;
 };
 export type Activity = {
   id: string;

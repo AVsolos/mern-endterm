@@ -1,9 +1,9 @@
-import { test } from "node:test";
+import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { DatabaseSync } from "node:sqlite";
-import { readFileSync, readdirSync } from "node:fs";
-import { createService } from "../lib/service.ts";
-import type { Database, Statement } from "../lib/service.ts";
+import { startMongo, freshStore, stopMongo } from "./mongo-fixture.ts";
+before(startMongo); after(stopMongo);
+import { createService } from "../server/service.ts";
+
 import { AppError, interval, overlaps } from "../lib/domain.ts";
 
 const now = Date.UTC(2026, 9, 27, 12),
@@ -12,60 +12,8 @@ const owner = { userId: "manager", displayName: "Lab manager" };
 const member = { userId: "borrower", displayName: "Aditi" };
 const outsider = { userId: "outsider", displayName: "Other user" };
 const id = () => crypto.randomUUID();
-function database() {
-  const sqlite = new DatabaseSync(":memory:");
-  sqlite.exec("PRAGMA foreign_keys = ON");
-  for (const file of readdirSync(new URL("../drizzle", import.meta.url))
-    .filter((f) => f.endsWith(".sql"))
-    .sort())
-    sqlite.exec(
-      readFileSync(new URL(`../drizzle/${file}`, import.meta.url), "utf8"),
-    );
-  class Query implements Statement {
-    sql: string;
-    values: unknown[] = [];
-    constructor(sql: string) {
-      this.sql = sql;
-    }
-    bind(...values: unknown[]) {
-      this.values = values;
-      return this;
-    }
-    async first<T>() {
-      return (sqlite.prepare(this.sql).get(...(this.values as never[])) ??
-        null) as T | null;
-    }
-    async all<T>() {
-      return {
-        results: sqlite
-          .prepare(this.sql)
-          .all(...(this.values as never[])) as T[],
-      };
-    }
-    run() {
-      return sqlite.prepare(this.sql).run(...(this.values as never[]));
-    }
-  }
-  const db: Database = {
-    prepare(sql) {
-      return new Query(sql);
-    },
-    async batch(queries) {
-      sqlite.exec("BEGIN IMMEDIATE");
-      try {
-        const result = queries.map((q) => (q as Query).run());
-        sqlite.exec("COMMIT");
-        return result;
-      } catch (e) {
-        sqlite.exec("ROLLBACK");
-        throw e;
-      }
-    },
-  };
-  return { db, sqlite };
-}
 async function setup() {
-  const { db, sqlite } = database();
+  const db = await freshStore();
   const manager = createService(db, owner, now);
   const workspaceId = id();
   await manager.createWorkspace({
@@ -86,7 +34,7 @@ async function setup() {
     purpose: "Film a student interview",
     ...more,
   });
-  return { db, sqlite, manager, borrower, workspaceId, equipmentId, booking };
+  return { db, manager, borrower, workspaceId, equipmentId, booking };
 }
 const rejects = (fn: Promise<unknown>, status: number) =>
   assert.rejects(fn, (e) => e instanceof AppError && e.status === status);
@@ -360,12 +308,10 @@ test("cross-workspace asset injection and another borrower's cancellation fail",
 });
 test("failed audit rolls back the booking transaction", async () => {
   const s = await setup();
-  s.sqlite.exec(
-    "CREATE TRIGGER audit_failure BEFORE INSERT ON audit BEGIN SELECT RAISE(ABORT, 'simulated disk failure'); END;",
-  );
+  await s.db.db.command({ collMod: "audit", validator: { impossible_field: { $exists: true } }, validationLevel: "strict" });
   await assert.rejects(
     s.borrower.reserve(s.booking()),
-    /simulated disk failure/,
+    /validation/,
   );
   assert.equal((await s.manager.snapshot(s.workspaceId)).bookings.length, 0);
 });
